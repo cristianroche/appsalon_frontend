@@ -10,8 +10,7 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      name: "home",
-      component: HomeView,
+      redirect: "/auth/login",
     },
     {
       path: "/admin",
@@ -117,36 +116,27 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+  const requiresAuth = to.matched.some((url) => url.meta.requiresAuth);
+  const requiresAdmin = to.matched.some((url) => url.meta.requiresAdmin);
 
-  if (requiresAuth) {
-    try {
-      const { data } = await AuthApi.auth();
-      if (data.admin) {
-        next({ name: "admin" });
-      } else {
-        next();
-      }
-    } catch (error) {
+  try {
+    const { data } = await AuthApi.auth();
+
+    if (to.path === "/" && !data.user) {
       next({ name: "login" });
-    }
-  } else {
-    next();
-  }
-});
-
-router.beforeEach(async (to, from, next) => {
-  const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin);
-
-  if (requiresAdmin) {
-    try {
-      await AuthApi.admin();
+    } else if (requiresAuth && !data.user) {
+      next({ name: "login" });
+    } else if (requiresAdmin && !data.admin) {
+      next({ name: "login" });
+    } else {
       next();
-    } catch (error) {
-      next({ name: "login" });
     }
-  } else {
-    next();
+  } catch (error) {
+    if (requiresAuth || requiresAdmin) {
+      next({ name: "login" });
+    } else {
+      next();
+    }
   }
 });
 
