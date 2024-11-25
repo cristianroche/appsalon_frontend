@@ -121,10 +121,8 @@ router.beforeEach(async (to, from, next) => {
 
   if (requiresAuth) {
     try {
-      const {
-        data: { user },
-      } = await AuthApi.auth();
-      if (user.admin) {
+      const { data } = await AuthApi.auth();
+      if (data.admin) {
         next({ name: "admin" });
       } else {
         next();
